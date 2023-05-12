@@ -22,10 +22,8 @@ squares  = cross(rows, cols)
 unitlist = ([cross(rows, c) for c in cols] +
             [cross(r, cols) for r in rows] +
             [cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')])
-units = dict((s, [u for u in unitlist if s in u])
-             for s in squares)
-peers = dict((s, set(sum(units[s],[]))-set([s]))
-             for s in squares)
+units = {s: [u for u in unitlist if s in u] for s in squares}
+peers = {s: set(sum(units[s],[])) - {s} for s in squares}
 
 ################ Unit Tests ################
 
@@ -38,9 +36,28 @@ def test():
     assert units['C2'] == [['A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2', 'H2', 'I2'],
                            ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9'],
                            ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3']]
-    assert peers['C2'] == set(['A2', 'B2', 'D2', 'E2', 'F2', 'G2', 'H2', 'I2',
-                               'C1', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9',
-                               'A1', 'A3', 'B1', 'B3'])
+    assert peers['C2'] == {
+        'A2',
+        'B2',
+        'D2',
+        'E2',
+        'F2',
+        'G2',
+        'H2',
+        'I2',
+        'C1',
+        'C3',
+        'C4',
+        'C5',
+        'C6',
+        'C7',
+        'C8',
+        'C9',
+        'A1',
+        'A3',
+        'B1',
+        'B3',
+    }
     print('All tests pass.')
 
 ################ Parse a Grid ################
@@ -49,7 +66,7 @@ def parse_grid(grid):
     """Convert grid to a dict of possible values, {square: digits}, or
     return False if a contradiction is detected."""
     ## To start, every square can be any digit; then assign values from the grid.
-    values = dict((s, digits) for s in squares)
+    values = {s: digits for s in squares}
     for s,d in grid_values(grid).items():
         if d in digits and not assign(values, s, d):
             return False ## (Fail if we can't assign d to square s.)
@@ -89,7 +106,7 @@ def eliminate(values, s, d):
     ## (2) If a unit u is reduced to only one place for a value d, then put it there.
     for u in units[s]:
         dplaces = [s for s in u if d in values[s]]
-        if len(dplaces) == 0:
+        if not dplaces:
             return False ## Contradiction: no place for this value
         elif len(dplaces) == 1:
             # d can only be in one place in unit; assign it there
@@ -122,8 +139,8 @@ def search(values):
     ## Chose the unfilled square s with the fewest possibilities
     n,s = min((len(values[s]), s) for s in squares if len(values[s]) > 1)
     for d in values[s]:
-        result = search(assign(values.copy(), s, d))
-        if result: return result
+        if result := search(assign(values.copy(), s, d)):
+            return result
 
 ################ System test ################
 
@@ -145,7 +162,9 @@ def time_solve(grid):
 
 def solved(values):
     "A puzzle is solved if each unit is a permutation of the digits 1 to 9."
-    def unitsolved(unit): return set(values[s] for s in unit) == set(digits)
+    def unitsolved(unit):
+        return {values[s] for s in unit} == set(digits)
+
     return values is not False and all(unitsolved(unit) for unit in unitlist)
 
 

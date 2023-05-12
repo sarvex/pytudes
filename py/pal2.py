@@ -89,7 +89,7 @@ class PalDict:
 
     def _k_startingwith(self, words, prefix):
         start = bisect.bisect_left(words, prefix)
-        end = bisect.bisect(words, prefix + 'zzzz')
+        end = bisect.bisect(words, f'{prefix}zzzz')
         n = end - start
         if self.k >= n: # get all the words that start with prefix
             results = words[start:end]
@@ -101,7 +101,7 @@ class PalDict:
         ## This is very slow, so don't use it until late in the game.
         if self.tryharder:
             for i in range(3, len(prefix)):
-                w = prefix[0:i]
+                w = prefix[:i]
                 if ((words == self.words and w in self.truename) or
                     (words == self.rwords and reversestr(w) in self.truename)):
                     results.append(w)
@@ -112,9 +112,11 @@ paldict = PalDict()
 def anpdictshort():
     "Find the words that are valid when every phrase must start with 'a'"
     def segment(word):  return [s for s in word.split('a') if s]
+
     def valid(word): return all(reversestr(s) in segments for s in segment(word))
+
     words = map(canonical, open('anpdict.txt'))
-    segments = set(s for w in words for s in segment(canonical(w)))
+    segments = {s for w in words for s in segment(canonical(w))}
     valid_words = [paldict.truename[w] for w in words if valid(w)]
     open('anpdict-short.txt', 'w').write('\n'.join(valid_words))
 
@@ -144,7 +146,7 @@ class Panama:
                 self.remove(dir, arg)
             elif action == 'trying' and arg: # try the next word if there is one
                 self.add(dir, arg.pop()) and self.consider_candidates()
-            elif action == 'trying' and not arg: # otherwise backtrack
+            elif action == 'trying': # otherwise backtrack
                 self.stack.pop()
             else:
                 raise ValueError(action)
@@ -153,12 +155,11 @@ class Panama:
         "add a word"
         if word in self.seen:
             return False
-        else:
-            getattr(self, dir).append(word)
-            self.diff += factor[dir] * len(word)
-            self.seen[word] = True
-            self.stack.append(('added', dir, '?', word))
-            return True
+        getattr(self, dir).append(word)
+        self.diff += factor[dir] * len(word)
+        self.seen[word] = True
+        self.stack.append(('added', dir, '?', word))
+        return True
 
     def remove(self, dir, word):
         "remove a word"
@@ -176,7 +177,7 @@ class Panama:
             candidates = self.dict.endswith(substr)
         elif self.diff < 0: # Right is longer, consider adding on left
             dir = 'left'
-            substr =  reversestr(self.right[-1][0:-self.diff])
+            substr = reversestr(self.right[-1][:-self.diff])
             candidates = self.dict.startswith(substr)
         else: # Both sides are same size
             dir = 'left'
@@ -211,9 +212,8 @@ class Panama:
             print('%5d phrases (%5d words) in %3d seconds' % (
                 self.best, self.bestphrase.count(' ')+1, time.clock() - self.starttime))
             assert is_panama(self.bestphrase)
-            f = open('pallog%d.txt' % (id(self) % 10000), 'w')
-            f.write(self.bestphrase + '\n')
-            f.close()
+            with open('pallog%d.txt' % (id(self) % 10000), 'w') as f:
+                f.write(self.bestphrase + '\n')
 
     def __len__(self):
         return len(self.left) + len(self.right)

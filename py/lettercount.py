@@ -61,10 +61,11 @@ def convert_files(filenames, mincount=1e5):
     def report(filename, D, adj):
         import time
         N = len(D)
-        W = sum(v for v in D.itervalues())
-        print('%s: %s %s words (%s tokens) at %s' % (
-            filename, adj, format(W, ',d'), format(N, ',d'),
-            time.strftime("%H:%M:%S", time.gmtime())))
+        W = sum(D.itervalues())
+        print(
+            f"""{filename}: {adj} {format(W, ',d')} words ({format(N, ',d')} tokens) at {time.strftime("%H:%M:%S", time.gmtime())}"""
+        )
+
     for f in filenames:
         report(f, {}, 'starting')
         D = read_year_file(f)
@@ -72,7 +73,7 @@ def convert_files(filenames, mincount=1e5):
         for key in list(D):
             if D[key] < mincount:
                 del D[key]
-        write_dict(D, 'WORD-' + f[-1].upper())
+        write_dict(D, f'WORD-{f[-1].upper()}')
         report(f, D, 'popular')
 
 def load(filename='top-words.txt'):
@@ -91,9 +92,11 @@ def histogram(items):
         C[key] += val
     return C
 
-def end(name): return '/' + name
+def end(name):
+    return f'/{name}'
 
-def tag(name, **kwds): return '<' + name + keywords(kwds) + '>'
+def tag(name, **kwds):
+    return f'<{name}{keywords(kwds)}>'
 
 def row(cells, **kwds):
     return '<tr>' + ''
@@ -106,7 +109,7 @@ def ngram_tables(dic, N, pos=[0, 1, 2, 3, 4, -5, -4, -3, -2, -1]):
     L = len(max(D, key=len))
     counts = Counter()
     counts1 = [Counter() for _ in range(L)]
-    counts2 = [[Counter() for i in range(L)]]
+    counts2 = [[Counter() for _ in range(L)]]
 
 def counter(pairs):
     "Make a Counter from an iterable of (value, count) pairs."
@@ -226,9 +229,13 @@ def lettercount(D, pos):
     LC = histogram((substr(w, pos, 1), D[w]) for w in D)
     del LC[None]
     print(LC)
-    pos_name = (str(pos)+'+' if isinstance(pos, tuple) else
-                pos if pos < 0 else
-                pos+1)
+    pos_name = (
+        f'{str(pos)}+'
+        if isinstance(pos, tuple)
+        else pos
+        if pos < 0
+        else pos + 1
+    )
     return '\n<br>\n%-3s %s' % (pos_name, letter_bar(LC))
 
 def ngramcount(D, n=2):
@@ -243,7 +250,7 @@ def twograms(D2):
 def cell(text, D2, N, height=16, maxwidth=25, scale=27):
     count = D2.get(text, 0)
     width = int(round(maxwidth * count * scale * 1. / N))
-    if width < 1: width = 1
+    width = max(width, 1)
     title = '{}: {:.3f}%; {:,}'.format(text, count*100./N, count)
     return '<td title="%s"><img src="o.jpg" height=%d width=%d><span style="position:relative; left:%d; bottom:4">%s</span></span>' % (
         title, height, width, -width+2, text)
@@ -251,7 +258,7 @@ def cell(text, D2, N, height=16, maxwidth=25, scale=27):
 def cell(text, D2, N, height=16, maxwidth=25, scale=27):
     count = D2.get(text, 0)
     width = int(round(maxwidth * count * scale * 1. / N))
-    if width < 1: width = 1
+    width = max(width, 1)
     title = '{}: {:.3f}%; {:,}'.format(text, count*100./N, count)
     return '<td title="%s" background="o.jpg" height=%d width=%d>%s' % (
         title, height, width, text) 
@@ -280,11 +287,17 @@ def col(*args): return args
 
 def columns(n, wordlengths=wordlengths):
     lengths = [k for k in wordlengths if k >= n]
-    return ([col(ANY, ANY)]
-            + [col(k, ANY) for k in lengths]
-            + [col(k, start, start+n-1) for k in lengths for start in range(1, 2+k-n)]
-            + [col(ANY, start, start+n-1) for start in wordlengths]
-            + [col(ANY, -k, -k+n-1) for k in reversed(lengths) if -k+n-1 < 0])
+    return (
+        [col(ANY, ANY)]
+        + [col(k, ANY) for k in lengths]
+        + [
+            col(k, start, start + n - 1)
+            for k in lengths
+            for start in range(1, 2 + k - n)
+        ]
+        + [col(ANY, start, start + n - 1) for start in wordlengths]
+        + [col(ANY, -k, -k + n - 1) for k in reversed(lengths) if -k + n < 1]
+    )
 
 def colname(col):
     fmt = '%s/%s' if (len(col) == 2) else '%s/%d:%d'
@@ -294,27 +307,26 @@ def csvline(first, rest):
     return '\t'.join([first] + map(str, rest))
 
 def makecsv(n, D=D):
-    out = open('ngrams%d.csv' % n, 'w')
-    cols = columns(n)
-    Dng = defaultdict(lambda: defaultdict(int))
-    for w in D:
-        for (start, ng) in enumerate(ngrams(w, n), 1):
-            entry = Dng[ng]
-            N = D[w]
-            wlen = len(w)
-            entry[ANY, ANY] += N
-            entry[wlen, ANY] += N
-            if start <= 9:
-                entry[wlen, start, start+n-1] += N
-                entry[ANY, start, start+n-1] += N
-            from_end = wlen-start+1
-            if from_end <= 9:
-                entry[ANY, -from_end, -from_end+n-1] += N
-        # enumerate ngrams from word and increment counts for each one
-    print(csvline('%d-gram' % n,  map(colname, cols)), file=out)
-    for ng in sorted(Dng, key=lambda ng: -Dng[ng][(ANY, ANY)]):
-        print(csvline(ng, [Dng[ng].get(col, 0) for col in cols]), file=out)
-    out.close()
+    with open('ngrams%d.csv' % n, 'w') as out:
+        cols = columns(n)
+        Dng = defaultdict(lambda: defaultdict(int))
+        for w in D:
+            for (start, ng) in enumerate(ngrams(w, n), 1):
+                entry = Dng[ng]
+                N = D[w]
+                wlen = len(w)
+                entry[ANY, ANY] += N
+                entry[wlen, ANY] += N
+                if start <= 9:
+                    entry[wlen, start, start+n-1] += N
+                    entry[ANY, start, start+n-1] += N
+                from_end = wlen-start+1
+                if from_end <= 9:
+                    entry[ANY, -from_end, -from_end+n-1] += N
+            # enumerate ngrams from word and increment counts for each one
+        print(csvline('%d-gram' % n,  map(colname, cols)), file=out)
+        for ng in sorted(Dng, key=lambda ng: -Dng[ng][(ANY, ANY)]):
+            print(csvline(ng, [Dng[ng].get(col, 0) for col in cols]), file=out)
     return Dng
 
 ### Tests

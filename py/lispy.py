@@ -54,11 +54,10 @@ class InPort(object):
 
 def readchar(inport):
     "Read the next character from an input port."
-    if inport.line != '':
-        ch, inport.line = inport.line[0], inport.line[1:]
-        return ch
-    else:
+    if inport.line == '':
         return inport.file.read(1) or eof_object
+    ch, inport.line = inport.line[0], inport.line[1:]
+    return ch
 
 def read(inport):
     "Read a Scheme expression from an input port."
@@ -117,7 +116,7 @@ def repl(prompt='lispy> ', inport=InPort(sys.stdin), out=sys.stdout):
             val = eval(x)
             if val is not None and out: print(to_string(val), file=out)
         except Exception as e:
-            print('%s: %s' % (type(e).__name__, e))
+            print(f'{type(e).__name__}: {e}')
 
 ################ Environment class
 
@@ -128,11 +127,10 @@ class Env(dict):
         self.outer = outer
         if isa(parms, Symbol): 
             self.update({parms:list(args)})
-        else: 
-            if len(args) != len(parms):
-                raise TypeError('expected %s, given %s, ' 
-                                % (to_string(parms), to_string(args)))
+        elif len(args) == len(parms):
             self.update(zip(parms,args))
+        else:
+            raise TypeError(f'expected {to_string(parms)}, given {to_string(args)}, ')
     def find(self, var):
         "Find the innermost Env where var appears."
         if var in self: return self
@@ -254,15 +252,14 @@ def expand(x, toplevel=False):
                 return None              #  => None; add v:proc to macro_table
             return [_define, v, exp]
     elif x[0] is _begin:
-        if len(x)==1: return None        # (begin) => None
-        else: return [expand(xi, toplevel) for xi in x]
+        return None if len(x)==1 else [expand(xi, toplevel) for xi in x]
     elif x[0] is _lambda:                # (lambda (x) e1 e2) 
         require(x, len(x)>=3)            #  => (lambda (x) (begin e1 e2))
         vars, body = x[1], x[2:]
         require(x, (isa(vars, list) and all(isa(v, Symbol) for v in vars))
                 or isa(vars, Symbol), "illegal lambda argument list")
         exp = body[0] if len(body) == 1 else [_begin] + body
-        return [_lambda, vars, expand(exp)]   
+        return [_lambda, vars, expand(exp)]
     elif x[0] is _quasiquote:            # `x => expand_quasiquote(x)
         require(x, len(x)==2)
         return expand_quasiquote(x[1])
@@ -273,7 +270,8 @@ def expand(x, toplevel=False):
 
 def require(x, predicate, msg="wrong length"):
     "Signal a syntax error if predicate is false."
-    if not predicate: raise SyntaxError(to_string(x)+': '+msg)
+    if not predicate:
+        raise SyntaxError(f'{to_string(x)}: {msg}')
 
 _append, _cons, _let = map(Sym, "append cons let".split())
 

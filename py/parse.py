@@ -40,14 +40,17 @@ def parse(forest, grammar):
     return None
 
 def mklist(x):
-    if type(x) == type([]): return x
-    else: return [x]
+    return x if type(x) == type([]) else [x]
 
 def match(forest, rhs):
-    for i in range(len(rhs)):
-        if category(forest[i]) != rhs[i] and forest[i] != rhs[i]: return 0
-    return 1
+    return next(
+        (
+            0
+            for i in range(len(rhs))
+            if category(forest[i]) != rhs[i] and forest[i] != rhs[i]
+        ),
+        1,
+    )
 
 def category(forest):
-    if type(forest) == type(()): return forest[0]
-    else: return 'word'
+    return forest[0] if type(forest) == type(()) else 'word'

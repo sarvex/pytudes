@@ -63,8 +63,7 @@ class Pdist(dict):
         self.N = float(N or sum(self.itervalues()))
         self.missingfn = missingfn or (lambda k, N: 1./N)
     def __call__(self, key): 
-        if key in self: return self[key]/self.N  
-        else: return self.missingfn(key, self.N)
+        return self[key]/self.N if key in self else self.missingfn(key, self.N)
 
 def datafile(name, sep='\t'):
     "Read key,value pairs from file."
@@ -84,7 +83,7 @@ Pw  = Pdist(datafile('count_1w.txt'), N, avoid_long_words)
 def cPw(word, prev):
     "Conditional probability of word, given previous word."
     try:
-        return P2w[prev + ' ' + word]/float(Pw[prev])
+        return P2w[f'{prev} {word}'] / float(Pw[prev])
     except KeyError:
         return Pw(word)
 
@@ -159,16 +158,16 @@ P3l = Pdist(datafile('count_3l.txt'))
 P2l = Pdist(datafile('count_2l.txt')) ## We'll need it later 
 
 def hillclimb(x, f, neighbors, steps=10000): 
-    "Search for an x that maximizes f(x), considering neighbors(x)." 
-    fx = f(x) 
-    neighborhood = iter(neighbors(x)) 
-    for i in range(steps): 
-        x2 = neighborhood.next() 
-        fx2 = f(x2) 
+    "Search for an x that maximizes f(x), considering neighbors(x)."
+    fx = f(x)
+    neighborhood = iter(neighbors(x))
+    for _ in range(steps):
+        x2 = neighborhood.next()
+        fx2 = f(x2)
         if fx2 > fx: 
             x, fx = x2, fx2 
-            neighborhood = iter(neighbors(x)) 
-    if debugging: print('hillclimb:', x, int(fx)) 
+            neighborhood = iter(neighbors(x))
+    if debugging: print('hillclimb:', x, int(fx))
     return x 
 
 debugging = False 
@@ -226,35 +225,36 @@ p_spell_error = 1./20.
 P1edit = Pdist(datafile('count_1edit.txt')) ## Probabilities of single edits 
 
 def edits(word, d=2): 
-    "Return a dict of {correct: edit} pairs within d edits of word." 
-    results = {} 
+    "Return a dict of {correct: edit} pairs within d edits of word."
+    results = {}
     def editsR(hd, tl, d, edits): 
-        def ed(L,R): return edits+[R+'|'+L] 
-        C = hd+tl 
+        def ed(L,R):
+            return edits + [f'{R}|{L}']
+
+        C = hd+tl
         if C in Pw: 
-            e = '+'.join(edits) 
-            if C not in results: results[C] = e 
-            else: results[C] = max(results[C], e, key=Pedit) 
-        if d <= 0: return 
-        extensions = [hd+c for c in alphabet if hd+c in PREFIXES] 
+            e = '+'.join(edits)
+            results[C] = e if C not in results else max(results[C], e, key=Pedit)
+        if d <= 0: return
+        extensions = [hd+c for c in alphabet if hd+c in PREFIXES]
         p = (hd[-1] if hd else '<') ## previous character 
         ## Insertion 
         for h in extensions: 
-            editsR(h, tl, d-1, ed(p+h[-1], p)) 
-        if not tl: return 
+            editsR(h, tl, d-1, ed(p+h[-1], p))
+        if not tl: return
         ## Deletion 
-        editsR(hd, tl[1:], d-1, ed(p, p+tl[0])) 
+        editsR(hd, tl[1:], d-1, ed(p, p+tl[0]))
         for h in extensions: 
             if h[-1] == tl[0]: ## Match 
                 editsR(h, tl[1:], d, edits) 
             else: ## Replacement 
-                editsR(h, tl[1:], d-1, ed(h[-1], tl[0])) 
-        ## Transpose 
+                editsR(h, tl[1:], d-1, ed(h[-1], tl[0]))
+        ## Transpose
         if len(tl)>=2 and tl[0]!=tl[1] and hd+tl[1] in PREFIXES: 
-            editsR(hd+tl[1], tl[0]+tl[2:], d-1, 
-                   ed(tl[1]+tl[0], tl[0:2])) 
+            editsR(hd+tl[1], tl[0]+tl[2:], d-1, ed(tl[1]+tl[0], tl[:2]))
+
     ## Body of edits: 
-    editsR('', word, d, []) 
+    editsR('', word, d, [])
     return results 
 
-PREFIXES = set(w[:i] for w in Pw for i in range(len(w) + 1)) 
+PREFIXES = {w[:i] for w in Pw for i in range(len(w) + 1)} 

@@ -27,7 +27,7 @@ def candidates(word):
 
 def known(words): 
     "The subset of `words` that appear in the dictionary of WORDS."
-    return set(w for w in words if w in WORDS)
+    return {w for w in words if w in WORDS}
 
 def edits1(word):
     "All edits that are one edit away from `word`."
@@ -88,8 +88,9 @@ def spelltest(tests, verbose=False):
         if w != right:
             unknown += (right not in WORDS)
             if verbose:
-                print('correction({}) => {} ({}); expected {} ({})'
-                      .format(wrong, w, WORDS[w], right, WORDS[right]))
+                print(
+                    f'correction({wrong}) => {w} ({WORDS[w]}); expected {right} ({WORDS[right]})'
+                )
     dt = time.clock() - start
     print('{:.0%} of {} correct ({:.0%} unknown) at {:.0f} words per second '
           .format(good / n, n, unknown / n, n / dt))

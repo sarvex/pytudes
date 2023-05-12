@@ -107,23 +107,24 @@ class Docex:
 
     def run_module(self, object):
         """Run the docstrings, and then all members of the module."""
-        if not self.seen(object):
-            self.dictionary.update(vars(object)) # import module into self
-            name = object.__name__
-            self.writeln('## Module %s ' % name,
-             '\n</pre><a name=%s><h1>' % name,
-             '</h1><pre>')
-            self.run_docstring(object)
-            names = object.__dict__.keys()
-            names.sort()
-            for name in names:
-                val = object.__dict__[name]
-                if isinstance(val, types.ClassType):
-                    self.run_class(val)
-                elif isinstance(val, types.ModuleType):
-                    pass
-                elif not self.seen(val):
-                    self.run_docstring(val)
+        if self.seen(object):
+            return
+        self.dictionary.update(vars(object)) # import module into self
+        name = object.__name__
+        self.writeln(
+            f'## Module {name} ', '\n</pre><a name=%s><h1>' % name, '</h1><pre>'
+        )
+        self.run_docstring(object)
+        names = object.__dict__.keys()
+        names.sort()
+        for name in names:
+            val = object.__dict__[name]
+            if isinstance(val, types.ClassType):
+                self.run_class(val)
+            elif isinstance(val, types.ModuleType):
+                pass
+            elif not self.seen(val):
+                self.run_docstring(val)
 
     def run_class(self, object):
         """Run the docstrings, and then all members of the class."""
@@ -139,8 +140,8 @@ class Docex:
         if hasattr(object, '__doc__'):
             s = object.__doc__
             if isinstance(s, str):
-                match = search(s)
-                if match: self.run_string(s[match.end():])
+                if match := search(s):
+                    self.run_string(s[match.end():])
         if hasattr(object, '_docex'):
             self.run_string(object._docex)
 
@@ -168,11 +169,11 @@ class Docex:
 
     def evaluate(self, teststr, resultstr=None):
         "Eval teststr and check if resultstr (if given) evals to the same."
-        self.writeln('>>> ' +  teststr.strip())
+        self.writeln(f'>>> {teststr.strip()}')
         result = eval(teststr, self.dictionary)
         self.dictionary['_'] = result
         self.writeln(repr(result))
-        if resultstr == None:
+        if resultstr is None:
             return
         elif result == eval(resultstr, self.dictionary):
             self.passed += 1
@@ -181,20 +182,22 @@ class Docex:
 
     def raises(self, teststr, exceptionstr):
         teststr = teststr.strip()
-        self.writeln('>>> ' + teststr)
+        self.writeln(f'>>> {teststr}')
         except_class = eval(exceptionstr, self.dictionary)
         try:
             exec(teststr, self.dictionary)
         except except_class:
-            self.writeln('# raises %s as expected' % exceptionstr)
+            self.writeln(f'# raises {exceptionstr} as expected')
             self.passed += 1
             return
         self.fail(teststr, exceptionstr)
 
     def fail(self, teststr, resultstr):
-        self.writeln('###### ERROR, TEST FAILED: expected %s for %s'
-                     % (resultstr, teststr),
-                     '<font color=red><b>', '</b></font>')
+        self.writeln(
+            f'###### ERROR, TEST FAILED: expected {resultstr} for {teststr}',
+            '<font color=red><b>',
+            '</b></font>',
+        )
         self.failed += 1
 
     def writeln(self, s, before='', after=''):
@@ -202,7 +205,7 @@ class Docex:
         s = str(s)
         if self.html:
             s = s.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
-            print('%s%s%s' % (before, s, after))
+            print(f'{before}{s}{after}')
         else:
             print(s)
 
@@ -228,9 +231,11 @@ def main(args):
             html = 1
     modules = []
     for arg in args:
-        for file in glob.glob(arg):
-            if file.endswith('.py'):
-                modules.append(__import__(file[:-3]))
+        modules.extend(
+            __import__(file[:-3])
+            for file in glob.glob(arg)
+            if file.endswith('.py')
+        )
     print(Docex(modules, html=html, out=out))
 
 if __name__ == '__main__':

@@ -14,7 +14,7 @@ def get_genomes(fname="byronbayseqs.fas.txt"):
 def get_neighbors(fname="editdistances.txt"):
     "Return dict: neighbors[i][j] = neighbors[j][i] = d means i,j are d apart."
     ## Read the data pre-computed from the Java program
-    neighbors = dict((i, {}) for i in range(n))
+    neighbors = {i: {} for i in range(n)}
     for line in open(fname):
         i,j,d = map(int, line.split())
         neighbors[i][j] = neighbors[j][i] = d
@@ -37,8 +37,7 @@ def closure(g, s, unclustered, d, dc):
 
 def dist(i, j):
     "Distance between two genomes."
-    if i == j: return 0
-    return neighbors[min(i, j)].get(max(i, j), max_distance)
+    return 0 if i == j else neighbors[min(i, j)].get(max(i, j), max_distance)
 
 def near(g, cluster, d, dc):
     "Is g within d of some member of c, and within dc of every member of c?"
@@ -59,8 +58,7 @@ def margin(cluster):
 def pct(num, den):
     "Return a string representing the percentage. "
     if '__len__' in dir(den): den = len(den)
-    if num==den: return ' 100%'
-    return '%.1f%%' % (num*100.0/den)
+    return ' 100%' if num==den else '%.1f%%' % (num*100.0/den)
 
 def histo(items):
     "Make a histogram from a sequence of items or (item, count) tuples."
@@ -77,7 +75,7 @@ def showh(d):
 
 def greport(genomes):
     print("Number of genomes: %d (%d distinct)" % (len(genomes), len(set(genomes))))
-    G = dict((g, set()) for g in genomes)
+    G = {g: set() for g in genomes}
     for i in range(n):
         G[genomes[i]].add(species[i])
     print("Multi-named genomes:", (
@@ -97,7 +95,8 @@ def nreport(neighbors):
     print("Nearest neighbor counts:", showh(NN))
     print("Number of neighbors at each distance:", showh(NumN))
 
-def nspecies(c): return len(set(species[g] for g in c))
+def nspecies(c):
+    return len({species[g] for g in c})
 
 def showc(c):
     return "N=%d, D=%d, M=%d: %s %s" % (
@@ -106,12 +105,13 @@ def showc(c):
 def creport(drange, dcrange):
     def table(what, fn):
         print("\n" + what)
-        print(' '*8, ' '.join([' '+pct(dc, glen) for dc in dcrange]))
+        print(' '*8, ' '.join([f' {pct(dc, glen)}' for dc in dcrange]))
         for d in drange:
             print('%s (%2d)' % (pct(d, glen), d), end=' ')
             for dc in dcrange:
                 print('%5s' % fn(cluster(neighbors, d, dc)), end=' ')
             print()
+
     print('\nNearest neighbor must be closer than this percentage (places). ')
     print('Each column: all genomes in cluster within this percentage of each other.')
     table("Number of clusters", len)
@@ -143,6 +143,7 @@ def creport(drange, dcrange):
                     if g2 not in c and dist(g, g2) < P*d:
                         total += 1
         return pct(total, n)
+
     def f(P):
         print('\nPercent of individuals within %.2f*diameter of another cluster.'%P)
         table(lambda cl: pct_near_another(cl, P))
@@ -167,10 +168,10 @@ def compare(cl1, cl2):
                for c1 in cl1 for c2 in cl2)
 
 def unit_tests():
-    assert set(len(g) for g in genomes) == set([glen])
+    assert {len(g) for g in genomes} == {glen}
     clusters = cluster(neighbors, 11, 11)
     assert sum(len(c) for c in clusters) == len(genomes)
-    assert len(set(g for c in clusters for g in c)) == len(genomes)
+    assert len({g for c in clusters for g in c}) == len(genomes)
     assert dist(17, 42) == dist(42, 17)
     assert diameter(set()) == 0
     assert diameter([17, 42]) == dist(17, 42)

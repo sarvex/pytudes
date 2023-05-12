@@ -167,4 +167,4 @@ if __name__ == '__main__':
     test2()
     p.search(10**6)
     print(p.report())
-    print(str(p))
+    print(p)

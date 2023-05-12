@@ -54,13 +54,13 @@ class PalDict:
 def k_startingwith(k, words, prefix):
     """Choose up to k words that match the prefix (choose randomly if > k)."""
     start = bisect.bisect(words, prefix)
-    end = bisect.bisect(words, prefix + 'zzzz')
+    end = bisect.bisect(words, f'{prefix}zzzz')
     n = end - start
     if k >= n:
         results = words[start:end]
         random.shuffle(results)
     else: # Should really try to avoid duplicates
-        results = [words[random.randrange(start, end)] for i in range(k)]
+        results = [words[random.randrange(start, end)] for _ in range(k)]
     return results
 
 class Panama:
@@ -101,13 +101,13 @@ class Panama:
             self.diff -= len(fword)
             self.seen[fword] = 1
             self.right.append(word)
-            self.stack.append(self.missing(k))
         else: # Right is longer, add to left
             if word in self.seen: return
             self.diff += len(word)
             self.seen[word] = 1
             self.left.append(word)
-            self.stack.append(self.missing(k))
+
+        self.stack.append(self.missing(k))
 
     def backtrack(self):
         "Remove the last word added; return 0 if can't backtrack"
@@ -131,9 +131,8 @@ class Panama:
             print(self.best)
             self.bestphrase = str(self)
             assert is_panama(self.bestphrase)
-            f = open('pallog%d.txt' % os.getpid(), 'w')
-            f.write(self.bestphrase + '\n')
-            f.close()
+            with open('pallog%d.txt' % os.getpid(), 'w') as f:
+                f.write(self.bestphrase + '\n')
 
     def __len__(self):
         return len(self.left) + len(self.right)
@@ -148,8 +147,7 @@ def reverse(x):
     "Reverse a list or string."
     if type(x) == type(''):
         return ''.join(reverse(list(x)))
-    else:
-        x.reverse()
-        return x
+    x.reverse()
+    return x
 
 if __name__ == '__main__': read_dict(); p = Panama(); p.search()

@@ -15,17 +15,20 @@ except NameError:
 
 id = r'[a-zA-Z_][a-zA-Z_0-9]*' ## RE for a Python identifier
 g1, g2, g3, g4 = r'\1 \2 \3 \4'.split() ## groups for re.matches
-def b(text): return '<b>%s</b>' % text
-def i(text): return '<i>%s</i>' % text
-def color(rgb, text): return '<font color="%s">%s</font>' % (rgb, text)
-def link(url, anchor): return '<a href="%s">%s</a>' % (url, anchor)
+def b(text):
+    return f'<b>{text}</b>'
+def i(text):
+    return f'<i>{text}</i>'
+def color(rgb, text):
+    return f'<font color="{rgb}">{text}</font>'
+def link(url, anchor):
+    return f'<a href="{url}">{anchor}</a>'
 def hilite(text, bg="ffff00"):
-    return '<b style="background-color:%s"><a name="%s">%s</b>' % (
-        bg, text, text)
+    return f'<b style="background-color:{bg}"><a name="{text}">{text}</b>'
 
 def modulelink(module, baseurl=''):
     """Hyperlink to a module, either locally or on python.org"""
-    if module+'.py' not in local_files:
+    if f'{module}.py' not in local_files:
         baseurl = 'http://www.python.org/doc/current/lib/module-'
     return link(baseurl+module+'.html', module)
 
@@ -47,9 +50,8 @@ def convert_files(filenames, local_filenames=None, tblfile='readme.htm'):
         text = fulltext
         for (pattern, repl) in replacements:
             text = re.sub(pattern, repl, text)
-        text = '<<header("AIMA Python file: %s")>><pre>%s</pre><<footer>>' % (
-            f, text)
-        open(f[:-3]+'.htm', 'w').write(text)
+        text = f'<<header("AIMA Python file: {f}")>><pre>{text}</pre><<footer>>'
+        open(f'{f[:-3]}.htm', 'w').write(text)
         if tblfile:
             ch = find1(r'Chapters?\s+([^ \)"]*)', fulltext)
             module = f.replace('.py','')
@@ -59,16 +61,16 @@ def convert_files(filenames, local_filenames=None, tblfile='readme.htm'):
     if tblfile:
         totallines = 0
         tbl = ["<tr><th>Chapter<th>Module<th>Files<th>Lines<th>Description"]
-        fmt = "<tr><td align=right>%s<th>%s<td>%s<td align=right>%s<td>%s" 
-        items = summary_table.items(); items.sort(num_cmp)
+        fmt = "<tr><td align=right>%s<th>%s<td>%s<td align=right>%s<td>%s"
+        items = summary_table.items()
+        items.sort(num_cmp)
         for (ch, entries) in items:
             for (module, lines, desc) in entries:
                 totallines += lines
-                files = link(module+'.py', '.py')
-                if os.path.exists(module+'.txt'):
-                    files += ' ' + link(module+'.txt', '.txt')
-                tbl += [fmt % (ch, link(module+'.html', module), 
-                               files, lines, desc)]
+                files = link(f'{module}.py', '.py')
+                if os.path.exists(f'{module}.txt'):
+                    files += ' ' + link(f'{module}.txt', '.txt')
+                tbl += [(fmt % (ch, link(f'{module}.html', module), files, lines, desc))]
         tbl += [fmt % ('', '', '', totallines, ''), "</table>"]
         ## Now read the tblfile, and replace the first table with tbl
         old = open(tblfile).read()
@@ -79,8 +81,8 @@ def convert_files(filenames, local_filenames=None, tblfile='readme.htm'):
 def num_cmp(x, y):
     def num(x):
         nums = re.findall('[0-9]+', x or '')
-        if nums: return int(nums[0])
-        return x
+        return int(nums[0]) if nums else x
+
     return cmp(num(x[0]), num(y[0]))
 
 ### Above is general (more or less); below is specific to my files.

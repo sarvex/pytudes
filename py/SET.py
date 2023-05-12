@@ -40,10 +40,14 @@ def is_set(cards):
 
 def find_set(layout):
     "Return a set found from this layout, if there is one."
-    for cards in itertools.combinations(layout, 3):
-        if is_set(cards):
-            return cards
-    return ()
+    return next(
+        (
+            cards
+            for cards in itertools.combinations(layout, 3)
+            if is_set(cards)
+        ),
+        (),
+    )
 
 #### Tallying set:no-set ratio
 
@@ -63,7 +67,7 @@ def tally_initial_layout(N, sizes=(12, 15)):
     "Record tallies for N initial deals."
     tallies = Tallies()
     deck = list(CARDS)
-    for deal in range(N):
+    for _ in range(N):
         random.shuffle(deck)
         for size in sizes:
             tally(tallies, deck[:size])
@@ -74,7 +78,7 @@ def tally_initial_layout_no_prior_sets(N, sizes=(12, 15)):
     but only when there was no set with 3 fewer cards."""
     tallies = Tallies()
     deck = list(CARDS)
-    for deal in range(N):
+    for _ in range(N):
         random.shuffle(deck)
         for size in sizes:
             if not find_set(deck[:size-3]):
@@ -84,7 +88,7 @@ def tally_initial_layout_no_prior_sets(N, sizes=(12, 15)):
 def tally_game_play(N):
     "Record tallies for the play of N complete games."
     tallies = Tallies()
-    for game in range(N):
+    for _ in range(N):
         deck = list(CARDS)
         random.shuffle(deck)
         layout = deal(12, deck)
@@ -94,7 +98,7 @@ def tally_game_play(N):
             for card in s: layout.remove(card)
             # Deal new cards
             if len(layout) < 12 or not s:
-                layout += deal(3, deck)    
+                layout += deal(3, deck)
     return tallies
 
 def experiments(N):

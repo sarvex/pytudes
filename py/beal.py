@@ -22,8 +22,7 @@ def beal(max_A, max_x):
                 if Cz in Czroots:
                     C = Czroots[Cz]
                     x, y, z = exponent(Ax, A), exponent(By, B), exponent(Cz, C)
-                    print('{} ** {} + {} ** {} == {} ** {} == {}'
-                          .format(A, x, B, y, C, z, C ** z))
+                    print(f'{A} ** {x} + {B} ** {y} == {C} ** {z} == {C**z}')
 
 def make_Apowers(max_A, max_x): 
     "A dict of {A: [A**3, A**4, ...], ...}."
@@ -37,7 +36,7 @@ def exponents_upto(max_x):
     "Return all odd primes up to max_x, as well as 4."
     exponents = [3, 4] if max_x >= 4 else [3] if max_x == 3 else []
     for x in range(5, max_x, 2):
-        if not any(x % p == 0 for p in exponents):
+        if all(x % p != 0 for p in exponents):
             exponents.append(x)
     return exponents
 
@@ -105,8 +104,7 @@ def beal_modp(max_A, max_x, p=2**31-1):
                     lhs = A ** x + B ** y
                     for (C, z) in Czroots[Czp]:
                         if lhs == C ** z:
-                            print('{} ** {} + {} ** {} == {} ** {} == {}'
-                                  .format(A, x, B, y, C, z, C ** z))                        
+                            print(f'{A} ** {x} + {B} ** {y} == {C} ** {z} == {C**z}')                        
                     
 
 def make_Apowers_modp(max_A, max_x, p): 

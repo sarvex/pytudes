@@ -14,15 +14,16 @@ def expand_accumulations(program_text):
     and it doesn't handle multiple 'for' clauses; nor 'if' clauses."""
     def _(matchobj):
         (acc, exp, x, it) = matchobj.groups()
-        return "accumulation(%s, lambda %s: (%s), %s)" % (acc, x, exp, it)
+        return f"accumulation({acc}, lambda {x}: ({exp}), {it})"
+
     return acc_re.sub(_, program_text)
 
 def test1(acc_display, expected):
     "Eval an accumulation display and see if it gets the expected answer."
     print(acc_display)
     result = eval(expand_accumulations(acc_display))
-    assert result == expected, ('Got %s; expected %s' % (result, expected))
-    print('    ==>  %s' % result)
+    assert result == expected, f'Got {result}; expected {expected}'
+    print(f'    ==>  {result}')
 
 #### Initialize some data
 temp = [70, 70, 71, 74, 76, 76, 72, 76, 77, 77, 77, 78,
@@ -39,16 +40,18 @@ def test():
     print('votes = ', votes)
     print('candidates = ', candidates)
     print()
-    
+
     #### Test some accumulation displays
-    test1("[Max: temp[hour] for hour in range(24)]",
-          max([temp[hour] for hour in range(24)]))
-    test1("[Min: temp[hour] for hour in range(24)]",
-          min([temp[hour] for hour in range(24)]))
-    test1("[Sum: x*x for x in data]",
-          sum([x*x for x in data]))
-    test1("[Mean: f(x) for x in data]",
-          sum([f(x) for x in data])/len(data))
+    test1(
+        "[Max: temp[hour] for hour in range(24)]",
+        max(temp[hour] for hour in range(24)),
+    )
+    test1(
+        "[Min: temp[hour] for hour in range(24)]",
+        min(temp[hour] for hour in range(24)),
+    )
+    test1("[Sum: x*x for x in data]", sum(x*x for x in data))
+    test1("[Mean: f(x) for x in data]", sum(f(x) for x in data) / len(data))
     test1("[Median: f(x) for x in data]",
           156.0)
     test1("[Mode: f(x) for x in data]",
@@ -57,8 +60,10 @@ def test():
           'Arnie')
     test1("[Argmin: votes[c] for c in candidates]",
           'Peter')
-    test1("[Some: temp[hour] > 75 for hour in range(24)]",
-          len([hour for four in range(24) if temp[hour] > 75])>0)
+    test1(
+        "[Some: temp[hour] > 75 for hour in range(24)]",
+        len([hour for _ in range(24) if temp[hour] > 75]) > 0,
+    )
     test1("[Every: temp[hour] > 75 for hour in range(24)]",
           len([h for h in range(24) if temp[h] > 75]) == 24)
     test1("[Top(10): temp[hour] for hour in range(24)]",

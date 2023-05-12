@@ -80,7 +80,7 @@ class Copier:
             except:
                 self.oops('eval', expr)
             if callable(val): val = val()
-            if val == None: val = ''
+            if val is None: val = ''
             if self.verbose: print('========>', val)
             return str(val)
 
@@ -111,7 +111,7 @@ class Copier:
                     self.execute(''.join(block[i+1:j]))
                     i = j+1
                 else:  ## The header of a for loop (etc.) is on this line
-                    self.execute("%s _cb(%s,%s)" % (stmt,i+1,j))
+                    self.execute(f"{stmt} _cb({i + 1},{j})")
                     i = j+1
             else:       # normal line, just copy with substitution
                 self.outf.write(self.regex.sub(repl,self.preproc(line,'copy')))
@@ -146,7 +146,7 @@ class Copier:
         if why in ('exec', 'eval'):
             string = string.strip()
             if string[0] == '/':
-                string = '_' + string[1:]
+                string = f'_{string[1:]}'
             return string
         elif why == 'copy':
             # Expand & < > into entitites if surrounded by whitespace
